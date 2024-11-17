@@ -47,48 +47,48 @@ typedef uint32_t * (*paramGetterUInt32)(void);
 typedef uint64_t * (*paramGetterUInt64)(void);
 typedef float * (*paramGetterFloat)(void);
 
-#define PARAM_BYTES_MASK 0x03
-#define PARAM_1BYTE  0x00
-#define PARAM_2BYTES 0x01
-#define PARAM_4BYTES 0x02
-#define PARAM_8BYTES 0x03
+#define PARAM_BYTES_MASK 0x03 // 0000 0011
+#define PARAM_1BYTE  0x00 // 0000 0000
+#define PARAM_2BYTES 0x01 // 0000 0001
+#define PARAM_4BYTES 0x02 // 0000 0010
+#define PARAM_8BYTES 0x03 // 0000 0011
 
-#define PARAM_TYPE_MASK   0x0F
-#define PARAM_TYPE_INT   (0x00<<2)
-#define PARAM_TYPE_FLOAT (0x01<<2)
+#define PARAM_TYPE_MASK   0x0F // 0000 1111
+#define PARAM_TYPE_INT   (0x00<<2) // 0000 0000
+#define PARAM_TYPE_FLOAT (0x01<<2) // 0000 0100
 
-#define PARAM_SIGNED (0x00<<3)
-#define PARAM_UNSIGNED (0x01<<3)
+#define PARAM_SIGNED (0x00<<3) // 0000 0000
+#define PARAM_UNSIGNED (0x01<<3) // 0000 1000
 
-#define PARAM_VARIABLE (0x00<<7)
-#define PARAM_GROUP    (0x01<<7)
+#define PARAM_VARIABLE (0x00<<7) // 0000 0000
+#define PARAM_GROUP    (0x01<<7) // 1000 0000
 
-#define PARAM_EXTENDED (1<<4)
+#define PARAM_EXTENDED (1<<4) // 0001 0000
 
-#define PARAM_CORE (1<<5)
+#define PARAM_CORE (1<<5) // 0010 0000
 
-#define PARAM_RONLY (1<<6)
+#define PARAM_RONLY (1<<6) // 0100 0000
 
 #define PARAM_START 1
 #define PARAM_STOP  0
 
-#define PARAM_SYNC 0x02
+#define PARAM_SYNC 0x02 // 0000 0010
 
 // Extended type bits
-#define PARAM_PERSISTENT (1 << 8)
+#define PARAM_PERSISTENT (1 << 8) // 0001 0000 0000
 
 #define PARAM_PERSISTENT_STORED      1
 #define PARAM_PERSISTENT_NOT_STORED  0
 
 // User-friendly macros
-#define PARAM_UINT8 (PARAM_1BYTE | PARAM_TYPE_INT | PARAM_UNSIGNED)
-#define PARAM_INT8  (PARAM_1BYTE | PARAM_TYPE_INT | PARAM_SIGNED)
-#define PARAM_UINT16 (PARAM_2BYTES | PARAM_TYPE_INT | PARAM_UNSIGNED)
-#define PARAM_INT16  (PARAM_2BYTES | PARAM_TYPE_INT | PARAM_SIGNED)
-#define PARAM_UINT32 (PARAM_4BYTES | PARAM_TYPE_INT | PARAM_UNSIGNED)
-#define PARAM_INT32  (PARAM_4BYTES | PARAM_TYPE_INT | PARAM_SIGNED)
+#define PARAM_UINT8 (PARAM_1BYTE | PARAM_TYPE_INT | PARAM_UNSIGNED) // 0000 1000
+#define PARAM_INT8  (PARAM_1BYTE | PARAM_TYPE_INT | PARAM_SIGNED) // 0000 0000
+#define PARAM_UINT16 (PARAM_2BYTES | PARAM_TYPE_INT | PARAM_UNSIGNED) // 0000 1001
+#define PARAM_INT16  (PARAM_2BYTES | PARAM_TYPE_INT | PARAM_SIGNED) // 0000 0001
+#define PARAM_UINT32 (PARAM_4BYTES | PARAM_TYPE_INT | PARAM_UNSIGNED) // 0000 1010
+#define PARAM_INT32  (PARAM_4BYTES | PARAM_TYPE_INT | PARAM_SIGNED) // 0000 0010
 
-#define PARAM_FLOAT (PARAM_4BYTES | PARAM_TYPE_FLOAT | PARAM_SIGNED)
+#define PARAM_FLOAT (PARAM_4BYTES | PARAM_TYPE_FLOAT | PARAM_SIGNED) // 0000 0110
 
 // CRTP
 #define TOC_CH 0
@@ -113,6 +113,9 @@ typedef float * (*paramGetterFloat)(void);
       .address = (void*)(ADDRESS), \
       .callback = (void *)CALLBACK, \
       .getter = (void *)DEFAULT_GETTER, },
+
+// .type = TYPE if TYPE is 1 byte or smaller else set bit 0x10
+// .extended_type = mask off byte of TYPE, shift to fit in one byte. i.e. .exteded_type = upper byte of a long type
 // Storing (TYPE) & 0xFF instead of just (TYPE) in the first branch is a no-op,
 // but it prevents noisy spurious warnings when compiling bindings with Clang.
 

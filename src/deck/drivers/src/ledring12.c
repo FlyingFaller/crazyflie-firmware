@@ -1088,7 +1088,7 @@ static void ledring12Init(DeckInfo *info)
 
   isInit = true;
 
-  timer = xTimerCreate( "ringTimer", M2T(50),
+  timer = xTimerCreate( "ringTimer", M2T(5),
                                      pdTRUE, NULL, ledring12Timer );
   xTimerStart(timer, 100);
 }

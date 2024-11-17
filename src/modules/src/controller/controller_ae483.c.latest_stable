@@ -99,9 +99,6 @@ static float psi_mocap = 0.0f;
 static float theta_mocap = 0.0f;
 static float phi_mocap = 0.0f;
 
-// LED Deck
-static uint8_t use_LED = 1;
-
 // Safety variables
 static uint8_t safe_to_set_motors = 1; // Safety variable! False if drone is unsafe.
 static uint8_t use_safety = 1; // Use the safety checking system
@@ -317,7 +314,7 @@ void backup_state_estimation(){
     float flow_sum = n_x + n_y;
 
     // If flow sensor is stale or mocap is stale do x-y estimation
-    if (((flow_old == flow_sum) && !use_LED) || ((mocap_old == mocap_sum) && use_mocap)){
+    if (flow_old == flow_sum || ((mocap_old == mocap_sum) && use_mocap)){
       v_x_int += dt*(a_x_in_W-a_x_0);
       p_x_int += dt*v_x_int;
       v_y_int += dt*(a_y_in_W-a_y_0);
@@ -330,7 +327,7 @@ void backup_state_estimation(){
     }
 
     // If ToF sensors or mocap is stale do z estimation
-    if (((r_old == r) && !use_LED) || ((mocap_old == mocap_sum) && use_mocap)){
+    if (r_old == r || ((mocap_old == mocap_sum) && use_mocap)){
       v_z_int += dt*(a_z_in_W-a_z_0);
       p_z_int += dt*v_z_int;
     } else {
@@ -338,8 +335,8 @@ void backup_state_estimation(){
       p_z_int = p_z;
     }
 
-  if ((flow_old == flow_sum) && !use_LED){++flow_age;} else {flow_age = 0;}
-  if ((r_old == r) && !use_LED){++r_age;} else {r_age = 0;}
+  if (flow_old == flow_sum){++flow_age;} else {flow_age = 0;}
+  if (r_old == r){++r_age;} else {r_age = 0;}
   if ((mocap_old == mocap_sum) && use_mocap){++mocap_age;} else {mocap_age=0;}
 
     flow_old = flow_sum;
@@ -347,32 +344,16 @@ void backup_state_estimation(){
     mocap_old = mocap_sum;
 }
 
-// void ae483UpdateWithTOF(void){
-//   //
-// }
-
-// void ae483UpdateWithFlow(void){
-//   //
-// }
 void ae483UpdateWithTOF(tofMeasurement_t *tof)
 {
-  if (use_LED) {
-    tof_distance = 0.0f;
-  } else {
-    tof_distance = tof->distance;
-  }
+  tof_distance = tof->distance;
   tof_count++;
 }
 
 void ae483UpdateWithFlow(flowMeasurement_t *flow)
 {
-  if (use_LED) {
-    flow_dpixelx = 0.0f;
-    flow_dpixely = 0.0f;
-  } else {
-    flow_dpixelx = flow->dpixelx;
-    flow_dpixely = flow->dpixely;
-  }
+  flow_dpixelx = flow->dpixelx;
+  flow_dpixely = flow->dpixely;
   flow_count++;
 }
 
@@ -544,7 +525,7 @@ void controllerAE483(control_t *control,
   }
 
   // State estimates
-  if (use_observer && !use_mocap && !use_LED) {
+  if (use_observer && !use_mocap) {
     // Custom observer without mocap
     n_x_err = -1*k_flow*w_y + k_flow*v_x/p_z_eq - n_x;
     n_y_err = -1*k_flow*w_x + k_flow*v_y/p_z_eq - n_y;
@@ -560,7 +541,7 @@ void controllerAE483(control_t *control,
     v_y += dt*(-1*phi*a_z_0 - 0.2184729596578784f *n_y_err);
     v_z += dt*(a_z - a_z_0 - 94.33333333333394f*r_err);
 
-  } else if (use_observer && use_mocap && !use_LED){
+  } else if (use_observer && use_mocap){
     // Custom observer with mocap
     err_0 = -k_flow*w_y + (k_flow*v_x)/p_z_eq - n_x;
     err_1 = k_flow*w_x + (k_flow*v_y)/p_z_eq - n_y;
@@ -581,23 +562,7 @@ void controllerAE483(control_t *control,
     v_y += dt*(-a_z_0*phi - (0.0715179223697852f*err_1 + 15.383689251205787f*err_4 + -6.7252248898307f*err_8));
     v_z += dt*(a_z-a_z_0 - (93.17897306271185f*err_2 + 2.3230214890980805f*err_5));
 
-  } else if (use_observer && use_mocap && use_LED){
-    err_0 = p_x - p_x_mocap;
-    err_1 = p_y - p_y_mocap;
-    err_2 = p_z - p_z_mocap;
-    err_3 = psi - psi_mocap;
-    err_4 = theta - theta_mocap;
-    err_5 = phi - phi_mocap;
-    p_x += dt*(v_x - (19.88640059336123f*err_0 + 0.26920920812040056f*err_4));
-    p_y += dt*(v_y - (11.235803213396196f*err_1 + -0.49010250299907365f*err_5));
-    p_z += dt*(v_z - (6.08230711439294f*err_2));
-    psi += dt*(w_z - (1.5f*err_3));
-    theta += dt*(w_y - (0.7478033558900014f*err_0 + 2.560992864248374f*err_4));
-    phi += dt*(w_x - (-0.1458156207269972f*err_1 + 3.48977583797374f*err_5));
-    v_x += dt*(a_z_0*theta - (35.8351220544533f*err_0 + 6.043045017090066f*err_4));
-    v_y += dt*(-a_z_0*phi - (18.46315434939661f*err_1 + -7.217043151186782f*err_5));
-    v_z += dt*(a_z-a_z_0 - (14.894736842105242f*err_2));
-  } else {
+  } else  {
     //Default observer
     p_x = state->position.x;
     p_y = state->position.y;
@@ -722,7 +687,7 @@ LOG_ADD(LOG_FLOAT,       a_y_in_W,               &a_y_in_W)
 LOG_ADD(LOG_FLOAT,       a_z_in_W,               &a_z_in_W)
 LOG_ADD(LOG_UINT32,      flow_age,               &flow_age)
 LOG_ADD(LOG_UINT32,      r_age,                  &r_age)
-LOG_ADD(LOG_UINT32,      mocap_age,              &mocap_age)
+LOG_ADD(LOG_UINT32,      mocap_age,               &mocap_age)
 LOG_ADD(LOG_FLOAT,       a_x_0,                  &a_x_0)
 LOG_ADD(LOG_FLOAT,       a_y_0,                  &a_y_0)
 LOG_ADD(LOG_FLOAT,       a_z_0,                  &a_z_0)
@@ -733,6 +698,7 @@ LOG_GROUP_STOP(extravars)
 
 // LOG_GROUP_START(debugvars)
 // // ... put debug variables here temporarly ... 
+// LOG_ADD(...)
 // LOG_GROUP_STOP(debugvars)
 
 //                1234567890123456789012345678 <-- max total length
@@ -744,5 +710,4 @@ PARAM_ADD(PARAM_UINT8,     set_motors,              &safe_to_set_motors)
 PARAM_ADD(PARAM_UINT8,     use_safety,              &use_safety)
 PARAM_ADD(PARAM_UINT32,    bounds_update,           &bounds_update)
 PARAM_ADD(PARAM_UINT8,     use_mocap,               &use_mocap)
-PARAM_ADD(PARAM_UINT8,     use_LED,                 &use_LED)
 PARAM_GROUP_STOP(ae483par)
